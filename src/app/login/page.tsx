@@ -1,19 +1,23 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Key } from "lucide-react"; // Import Key icon if needed for OTP
+import { Mail, Key } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
+
+// Metadata defined outside the component
 
 export default function LoginPage() {
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
   const [credential, setCredential] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent) => {
      event.preventDefault();
      setIsSubmitting(true);
 
@@ -21,19 +25,23 @@ export default function LoginPage() {
 
      const allowedEmail = "mv6468@gmail.com"; // Hardcoded allowed email
 
+     // Simulate API call delay
+     await new Promise(resolve => setTimeout(resolve, 500));
+
      if (credential === allowedEmail) {
-        // Simulate successful login by setting a mock token and redirecting
+        // Simulate successful login by setting a mock token
         document.cookie = "auth_token=mock-token; path=/; max-age=3600"; // Expires in 1 hour
+
         toast({
            title: "Login Successful",
-           description: `Welcome back!`, // Simplified message
+           description: `Welcome back!`,
            variant: 'default',
            className: 'bg-accent text-accent-foreground border-accent',
         });
-        // Short delay before redirect to allow toast to show
-        setTimeout(() => {
-           window.location.href = '/'; // Redirect to homepage
-        }, 500);
+
+        // Use router.push for navigation
+        router.push('/'); // Redirect to homepage using Next.js router
+
      } else {
         // Show error toast
         toast({
@@ -51,14 +59,13 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Client Keeper Login</CardTitle>
           <CardDescription>Enter your email or phone to login.</CardDescription>
-          <p className="text-xs text-muted-foreground">(Test with: mv6468@gmail.com)</p> {/* Added test instruction */}
+          <p className="text-xs text-muted-foreground">(Test with: mv6468@gmail.com)</p>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="login-credential">Email or Phone Number</Label>
               <div className="relative">
-                {/* Icon can change based on input type detection, basic placeholder for now */}
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                  <Input
                     id="login-credential"
@@ -92,7 +99,7 @@ export default function LoginPage() {
                   Logging in...
                 </>
              ) : (
-                 "Login" // Changed button text from "Send OTP"
+                 "Login"
              )}
             </Button>
             {/* Link to registration if needed */}
@@ -106,8 +113,8 @@ export default function LoginPage() {
   );
 }
 
-// Metadata removed as it cannot be exported from a 'use client' component.
-// The root layout's metadata will apply, or you can create a separate layout.tsx for /login if needed.
+// Metadata cannot be exported from a Client Component.
+// It should be defined in a parent Server Component or Layout.
 // export const metadata = {
 //   title: 'Login - Client Keeper',
 //   description: 'Login to Client Keeper.',
