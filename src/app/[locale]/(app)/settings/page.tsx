@@ -1,20 +1,48 @@
 'use client'; // Required for stateful settings components
 
+import * as React from 'react';
 import { useTranslations } from 'next-intl'; // Import translation hook
+import { useTheme } from 'next-themes'; // Import useTheme hook
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Paintbrush, BellRing, MessageSquare } from "lucide-react";
+import { Paintbrush, BellRing, MessageSquare, Save } from "lucide-react";
+import { useToast } from '@/hooks/use-toast';
 
 // No need for explicit metadata export here
 
 export default function SettingsPage() {
   const t = useTranslations('SettingsPage'); // Initialize translations
+  const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
 
-  // TODO: Implement state management and saving for settings
+  // State for settings (replace with persistent storage later)
+  const [enableReminders, setEnableReminders] = React.useState(false);
+  const [reminderDays, setReminderDays] = React.useState(7);
+  const [smsTemplate, setSmsTemplate] = React.useState(
+    "Happy Birthday, [Name]! Hope you have a great day! 🎉 - [Your Store Name]"
+  );
+  const [mounted, setMounted] = React.useState(false);
+
+  // Ensure component is mounted before using theme to avoid hydration mismatch
+  React.useEffect(() => setMounted(true), []);
+
+  const handleSaveSmsTemplate = () => {
+     // TODO: Implement saving logic (e.g., to localStorage or backend)
+     console.log('Saving SMS Template:', smsTemplate);
+     toast({
+        title: "SMS Template Saved", // TODO: Add translation
+        description: "Your default birthday SMS has been updated.",
+     });
+  };
+
+  if (!mounted) {
+    // Render nothing or a loading indicator until mounted
+    return null;
+  }
 
   return (
     <div className="space-y-8 max-w-2xl mx-auto">
@@ -34,8 +62,12 @@ export default function SettingsPage() {
                 {t('darkModeDescription')}
               </span>
             </Label>
-            {/* TODO: Add state and logic to toggle theme */}
-            <Switch id="dark-mode" aria-label="Toggle dark mode" />
+            <Switch
+              id="dark-mode"
+              aria-label="Toggle dark mode"
+              checked={theme === 'dark'}
+              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+            />
           </div>
         </CardContent>
       </Card>
@@ -54,13 +86,25 @@ export default function SettingsPage() {
                  {t('enableRemindersDescription')}
                </span>
              </Label>
-             {/* TODO: Add state and logic */}
-             <Switch id="enable-reminders" aria-label="Enable birthday reminders" />
+             <Switch
+                id="enable-reminders"
+                aria-label="Enable birthday reminders"
+                checked={enableReminders}
+                onCheckedChange={setEnableReminders}
+             />
            </div>
            <div className="space-y-2">
             <Label htmlFor="reminder-days">{t('reminderDaysLabel')}</Label>
-            {/* TODO: Add state and logic, potentially disable if reminders are off */}
-            <Input id="reminder-days" type="number" min="1" max="30" defaultValue="7" className="w-24" />
+            <Input
+                id="reminder-days"
+                type="number"
+                min="1"
+                max="30"
+                value={reminderDays}
+                onChange={(e) => setReminderDays(parseInt(e.target.value, 10))}
+                className="w-24"
+                disabled={!enableReminders} // Disable if reminders are off
+             />
             <p className="text-xs text-muted-foreground">
               {t('reminderDaysHint')}
             </p>
@@ -77,18 +121,21 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="sms-template">{t('smsTemplateLabel')}</Label>
-            {/* TODO: Add state and logic */}
             <Textarea
               id="sms-template"
               placeholder={t('smsTemplatePlaceholder')}
-              defaultValue="Happy Birthday, [Name]! Hope you have a great day! 🎉 - [Your Store Name]" // Keep default as example
+              value={smsTemplate}
+              onChange={(e) => setSmsTemplate(e.target.value)}
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
               {t('smsTemplateHint')}
             </p>
           </div>
-           <Button>{t('saveSmsButton')}</Button> {/* TODO: Add save logic */}
+           <Button onClick={handleSaveSmsTemplate}>
+                <Save className="ltr:mr-2 rtl:ml-2 h-4 w-4"/>
+                {t('saveSmsButton')}
+            </Button>
         </CardContent>
       </Card>
 

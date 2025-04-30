@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server'; // Import getTranslations
+import { ThemeProvider } from '@/components/theme-provider'; // Import ThemeProvider
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -42,6 +43,10 @@ export async function generateMetadata({params: {locale}}: {params: {locale: str
       default: appName,
     },
     description: description,
+    // Add favicon link if it exists
+    // icons: {
+    //   icon: '/favicon.ico', // Adjust path if necessary
+    // },
   };
 }
 
@@ -60,10 +65,17 @@ export default function LocaleLayout({
   return (
     <html lang={locale} dir={locale === 'fa' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
-          <Toaster />
-        </NextIntlClientProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            {children}
+            <Toaster />
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
