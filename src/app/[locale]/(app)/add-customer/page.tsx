@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { getContacts, type Contact as PhoneContact } from '@/services/contacts';
+import { useRouter } from '@/navigation'; // Import router
 
 // Zod schema remains the same
 const formSchema = z.object({
@@ -34,12 +36,20 @@ const formSchema = z.object({
 
 type AddCustomerFormValues = z.infer<typeof formSchema>;
 
-// No need for explicit metadata export here, handled by generateMetadata in layout/page
+// Metadata moved to generateMetadata in layout/page structure if needed for Server Component version
+// export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
+//   const t = await getTranslations({ locale, namespace: 'AddCustomerPage' });
+//   return {
+//     title: t('pageTitle'),
+//     description: t('pageDescription'),
+//   };
+// }
 
 export default function AddCustomerPage() {
   const t = useTranslations('AddCustomerPage'); // Initialize translations
   const locale = useLocale(); // Get current locale
   const { toast } = useToast();
+  const router = useRouter(); // Initialize router
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [phoneContacts, setPhoneContacts] = React.useState<PhoneContact[]>([]);
   const [showContactPicker, setShowContactPicker] = React.useState(false);
@@ -63,12 +73,13 @@ export default function AddCustomerPage() {
 
   async function onSubmit(values: AddCustomerFormValues) {
     setIsSubmitting(true);
-    console.log('Form Values:', values);
+    console.log('Simulating Save - Form Values:', values);
 
     // Simulate API call / Firestore save
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // TODO: Replace with actual Firestore save logic
+    // TODO: Replace with actual Firestore save logic or state management update
+    // For now, we just show a success message, reset the form, and redirect.
 
     setIsSubmitting(false);
     toast({
@@ -77,21 +88,27 @@ export default function AddCustomerPage() {
       variant: 'default',
       className: 'bg-accent text-accent-foreground border-accent',
     });
-    form.reset();
+    form.reset(); // Reset form fields
+    // Optionally redirect to the customer list after saving
+    router.push('/');
   }
 
    const handleImportFromContacts = async () => {
     try {
-      // TODO: Implement actual permission request for contacts
+      // TODO: Implement actual permission request for contacts using native capabilities if needed
       const permissionGranted = confirm(t('contactImportPermissionPrompt'));
       if (!permissionGranted) {
          toast({ title: t('contactImportPermissionDeniedTitle'), description: t('contactImportPermissionDeniedDescription'), variant: "destructive" });
          return;
       }
 
-      const contacts = await getContacts();
-      setPhoneContacts(contacts);
-      setShowContactPicker(true);
+      const contacts = await getContacts(); // Assuming this returns mock or actual data
+      if (contacts && contacts.length > 0) {
+          setPhoneContacts(contacts);
+          setShowContactPicker(true);
+      } else {
+          toast({ title: t('contactPickerNoContacts'), variant: "default" });
+      }
     } catch (error) {
        console.error("Failed to fetch contacts:", error);
        toast({ title: t('contactImportErrorTitle'), description: t('contactImportErrorDescription'), variant: "destructive" });
@@ -100,12 +117,14 @@ export default function AddCustomerPage() {
 
    const handleSelectContact = (contact: PhoneContact) => {
       const nameParts = contact.name.split(' ');
-      const firstName = nameParts[0] || contact.name;
+      const firstName = nameParts[0] || contact.name; // Fallback to full name if no space
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
-      form.setValue('firstName', firstName);
+      form.setValue('firstName', firstName, { shouldValidate: true });
       form.setValue('lastName', lastName);
       form.setValue('phoneNumber', contact.phoneNumber);
+      // Note: Birthday and Tags are not typically available directly from basic contact info.
+
       setShowContactPicker(false);
        toast({
          title: t('contactImportedToastTitle'),
@@ -125,7 +144,7 @@ export default function AddCustomerPage() {
       {/* Contact Picker Dialog/Modal */}
       {showContactPicker && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">{t('contactPickerTitle')}</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowContactPicker(false)}>
@@ -138,12 +157,14 @@ export default function AddCustomerPage() {
                   <li key={index}>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start"
+                      className="w-full justify-start h-auto py-2"
                       onClick={() => handleSelectContact(contact)}
                     >
-                      <div className="ltr:text-left rtl:text-right">
-                        <div>{contact.name}</div>
-                        <div className="text-xs text-muted-foreground">{contact.phoneNumber}</div>
+                      <div className="ltr:text-left rtl:text-right flex flex-col">
+                        <span className="font-medium">{contact.name}</span>
+                        {contact.phoneNumber && (
+                          <span className="text-xs text-muted-foreground">{contact.phoneNumber}</span>
+                        )}
                       </div>
                     </Button>
                   </li>
@@ -243,7 +264,7 @@ export default function AddCustomerPage() {
                         placeholder={t('formTagsPlaceholder')}
                         {...field}
                         className="ltr:pl-10 rtl:pr-10"
-                        dir={locale === 'fa' ? 'rtl' : 'ltr'} // Set direction for textarea
+                        // Removed dir attribute, let browser handle based on html dir
                       />
                   </div>
                 </FormControl>
@@ -256,9 +277,9 @@ export default function AddCustomerPage() {
           <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
              {isSubmitting ? (
                 <>
-                  <svg className="animate-spin ltr:-ml-1 rtl:-mr-1 ltr:mr-3 rtl:ml-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  {/* Using Lucide's Loader 2 icon */}
+                  <svg className="animate-spin ltr:-ml-1 rtl:-mr-1 ltr:mr-3 rtl:ml-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
                   {t('submittingButton')}
                 </>
@@ -271,3 +292,4 @@ export default function AddCustomerPage() {
     </div>
   );
 }
+

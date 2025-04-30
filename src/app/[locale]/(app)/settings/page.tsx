@@ -1,3 +1,4 @@
+
 'use client'; // Required for stateful settings components
 
 import * as React from 'react';
@@ -12,35 +13,97 @@ import { Button } from "@/components/ui/button";
 import { Paintbrush, BellRing, MessageSquare, Save } from "lucide-react";
 import { useToast } from '@/hooks/use-toast';
 
-// No need for explicit metadata export here
+// localStorage keys
+const SETTINGS_KEY = 'clientKeeperSettings';
+const DEFAULT_SMS_TEMPLATE = "Happy Birthday, [Name]! Hope you have a great day! 🎉 - [Your Store Name]";
+
+interface AppSettings {
+  enableReminders: boolean;
+  reminderDays: number;
+  smsTemplate: string;
+  theme?: string; // Theme is handled by next-themes, but good to be aware
+}
 
 export default function SettingsPage() {
   const t = useTranslations('SettingsPage'); // Initialize translations
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
-  // State for settings (replace with persistent storage later)
+  // State for settings
   const [enableReminders, setEnableReminders] = React.useState(false);
   const [reminderDays, setReminderDays] = React.useState(7);
-  const [smsTemplate, setSmsTemplate] = React.useState(
-    "Happy Birthday, [Name]! Hope you have a great day! 🎉 - [Your Store Name]"
-  );
+  const [smsTemplate, setSmsTemplate] = React.useState(DEFAULT_SMS_TEMPLATE);
   const [mounted, setMounted] = React.useState(false);
 
-  // Ensure component is mounted before using theme to avoid hydration mismatch
-  React.useEffect(() => setMounted(true), []);
+  // Load settings from localStorage on mount
+  React.useEffect(() => {
+    setMounted(true);
+    try {
+        const savedSettingsRaw = localStorage.getItem(SETTINGS_KEY);
+        if (savedSettingsRaw) {
+            const savedSettings: Partial<AppSettings> = JSON.parse(savedSettingsRaw);
+            setEnableReminders(savedSettings.enableReminders ?? false);
+            setReminderDays(savedSettings.reminderDays ?? 7);
+            setSmsTemplate(savedSettings.smsTemplate ?? DEFAULT_SMS_TEMPLATE);
+            // Theme is handled by next-themes, but you could load it here if needed elsewhere
+        }
+    } catch (error) {
+        console.error("Failed to load settings from localStorage:", error);
+        // Use default values if loading fails
+    }
+  }, []);
+
+  // Save settings to localStorage whenever they change
+  const saveSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
+     if (!mounted) return; // Don't save during server render or before mount
+    try {
+        const currentSettingsRaw = localStorage.getItem(SETTINGS_KEY);
+        const currentSettings: Partial<AppSettings> = currentSettingsRaw ? JSON.parse(currentSettingsRaw) : {};
+        const updatedSettings = { ...currentSettings, ...newSettings };
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(updatedSettings));
+    } catch (error) {
+        console.error("Failed to save settings to localStorage:", error);
+        toast({
+            title: "Error Saving Settings", // TODO: Add translation
+            description: "Could not save your preferences.",
+            variant: "destructive",
+        });
+    }
+  }, [mounted, toast]); // Add toast dependency
+
+  // Handlers that update state and save
+  const handleEnableRemindersChange = (checked: boolean) => {
+    setEnableReminders(checked);
+    saveSettings({ enableReminders: checked });
+  };
+
+  const handleReminderDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const days = parseInt(e.target.value, 10);
+    if (!isNaN(days) && days >= 1 && days <= 30) { // Add validation
+      setReminderDays(days);
+      saveSettings({ reminderDays: days });
+    }
+  };
 
   const handleSaveSmsTemplate = () => {
-     // TODO: Implement saving logic (e.g., to localStorage or backend)
-     console.log('Saving SMS Template:', smsTemplate);
+     saveSettings({ smsTemplate });
      toast({
         title: "SMS Template Saved", // TODO: Add translation
         description: "Your default birthday SMS has been updated.",
      });
   };
 
+   // Handle theme change (saves automatically via next-themes)
+   const handleThemeChange = (checked: boolean) => {
+       const newTheme = checked ? 'dark' : 'light';
+       setTheme(newTheme);
+       // No need to call saveSettings here, next-themes handles localStorage
+   };
+
+
   if (!mounted) {
-    // Render nothing or a loading indicator until mounted
+    // Render nothing or a loading indicator until mounted to avoid hydration mismatch
+    // Using null avoids layout shifts
     return null;
   }
 
@@ -56,7 +119,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-            <Label htmlFor="dark-mode" className="flex flex-col space-y-1">
+            <Label htmlFor="dark-mode" className="flex flex-col space-y-1 cursor-pointer">
               <span>{t('darkModeLabel')}</span>
               <span className="font-normal leading-snug text-muted-foreground">
                 {t('darkModeDescription')}
@@ -66,7 +129,7 @@ export default function SettingsPage() {
               id="dark-mode"
               aria-label="Toggle dark mode"
               checked={theme === 'dark'}
-              onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              onCheckedChange={handleThemeChange} // Use updated handler
             />
           </div>
         </CardContent>
@@ -80,7 +143,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
            <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-             <Label htmlFor="enable-reminders" className="flex flex-col space-y-1">
+             <Label htmlFor="enable-reminders" className="flex flex-col space-y-1 cursor-pointer">
                <span>{t('enableRemindersLabel')}</span>
                <span className="font-normal leading-snug text-muted-foreground">
                  {t('enableRemindersDescription')}
@@ -90,7 +153,7 @@ export default function SettingsPage() {
                 id="enable-reminders"
                 aria-label="Enable birthday reminders"
                 checked={enableReminders}
-                onCheckedChange={setEnableReminders}
+                onCheckedChange={handleEnableRemindersChange} // Use updated handler
              />
            </div>
            <div className="space-y-2">
@@ -101,7 +164,7 @@ export default function SettingsPage() {
                 min="1"
                 max="30"
                 value={reminderDays}
-                onChange={(e) => setReminderDays(parseInt(e.target.value, 10))}
+                onChange={handleReminderDaysChange} // Use updated handler
                 className="w-24"
                 disabled={!enableReminders} // Disable if reminders are off
              />
@@ -125,7 +188,7 @@ export default function SettingsPage() {
               id="sms-template"
               placeholder={t('smsTemplatePlaceholder')}
               value={smsTemplate}
-              onChange={(e) => setSmsTemplate(e.target.value)}
+              onChange={(e) => setSmsTemplate(e.target.value)} // Update state directly
               rows={4}
             />
             <p className="text-xs text-muted-foreground">
@@ -156,3 +219,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
