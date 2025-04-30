@@ -1,5 +1,5 @@
 import { UserPlus } from 'lucide-react';
-import { getTranslator } from 'next-intl/server'; // Import getTranslator
+import { getTranslations } from 'next-intl/server'; // Import getTranslations
 
 import { CustomerTable } from '@/components/customer-table';
 import { MOCK_CUSTOMERS } from '@/lib/mock-data'; // Using mock data for now
@@ -16,8 +16,9 @@ async function getCustomers() {
 }
 
 // Generate metadata dynamically based on locale
+// Note: getTranslations works directly in Server Components for metadata
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}) {
-  const t = await getTranslator(locale, 'CustomersPage');
+  const t = await getTranslations({ locale, namespace: 'CustomersPage' });
   return {
     title: t('pageTitle'),
     description: t('pageDescription'),
@@ -27,7 +28,7 @@ export async function generateMetadata({params: {locale}}: {params: {locale: str
 
 export default async function CustomersPage({params: {locale}}: {params: {locale: string}}) {
   const customers = await getCustomers();
-  const t = await getTranslator(locale, 'CustomersPage'); // Get translator instance
+  const t = await getTranslations('CustomersPage'); // Get translator function
 
   return (
     <div className="space-y-6">

@@ -4,6 +4,7 @@ import '../globals.css'; // Adjust path
 import { Toaster } from '@/components/ui/toaster';
 import { NextIntlClientProvider, useMessages } from 'next-intl';
 import { notFound } from 'next/navigation';
+import { getTranslations } from 'next-intl/server'; // Import getTranslations
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -14,20 +15,10 @@ const locales = ['en', 'fa'];
 export async function generateMetadata({params: {locale}}: {params: {locale: string}}): Promise<Metadata> {
   if (!locales.includes(locale)) notFound(); // Validate locale
 
-  // Use dynamic import for messages
+  // Use dynamic import for messages (This part is fine)
+  let messages;
   try {
-      const messages = (await import(`../../../messages/${locale}.json`)).default;
-       // Dynamically generate title and description based on locale messages
-      const appName = messages.AppLayout?.appName || 'Client Keeper';
-      const description = messages.CustomersPage?.pageDescription || 'Manage your customer information efficiently.';
-
-      return {
-        title: {
-          template: `%s | ${appName}`,
-          default: appName,
-        },
-        description: description,
-      };
+      messages = (await import(`../../../messages/${locale}.json`)).default;
   } catch (error) {
       console.error("Failed to load messages for locale:", locale, error);
        // Fallback metadata if messages fail to load
@@ -37,6 +28,21 @@ export async function generateMetadata({params: {locale}}: {params: {locale: str
       };
   }
 
+  // Use getTranslations to get specific message keys for metadata
+  // Note: getTranslations needs the locale and namespace
+  const t = await getTranslations({ locale, namespace: 'AppLayout' });
+  const tCustomers = await getTranslations({ locale, namespace: 'CustomersPage'});
+
+  const appName = t('appName') || 'Client Keeper';
+  const description = tCustomers('pageDescription') || 'Manage your customer information efficiently.';
+
+  return {
+    title: {
+      template: `%s | ${appName}`,
+      default: appName,
+    },
+    description: description,
+  };
 }
 
 export default function LocaleLayout({
