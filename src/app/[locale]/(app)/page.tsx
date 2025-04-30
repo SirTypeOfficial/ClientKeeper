@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
-import type { Metadata } from 'next'; // Import Metadata type
+import { getTranslator } from 'next-intl/server'; // Import getTranslator
 
 import { CustomerTable } from '@/components/customer-table';
 import { MOCK_CUSTOMERS } from '@/lib/mock-data'; // Using mock data for now
 import { Button } from '@/components/ui/button';
+import { Link } from '@/navigation'; // Import from custom navigation
 
 
 // TODO: Replace mock data fetch with actual data fetching (e.g., from Firestore)
@@ -15,16 +15,27 @@ async function getCustomers() {
   return MOCK_CUSTOMERS;
 }
 
-export default async function CustomersPage() {
+// Generate metadata dynamically based on locale
+export async function generateMetadata({params: {locale}}: {params: {locale: string}}) {
+  const t = await getTranslator(locale, 'CustomersPage');
+  return {
+    title: t('pageTitle'),
+    description: t('pageDescription'),
+  };
+}
+
+
+export default async function CustomersPage({params: {locale}}: {params: {locale: string}}) {
   const customers = await getCustomers();
+  const t = await getTranslator(locale, 'CustomersPage'); // Get translator instance
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
         <Link href="/add-customer" passHref legacyBehavior>
           <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <UserPlus className="mr-2 h-4 w-4" /> Create Customer
+            <UserPlus className="ltr:mr-2 rtl:ml-2 h-4 w-4" /> {t('createButton')}
           </Button>
         </Link>
       </div>
@@ -32,9 +43,3 @@ export default async function CustomersPage() {
     </div>
   );
 }
-
-// Add metadata for the page
-export const metadata: Metadata = { // Add Metadata type
-  title: 'Customers - Client Keeper',
-  description: 'View and manage your customer list.',
-};

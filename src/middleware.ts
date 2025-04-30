@@ -1,41 +1,66 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import createMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
 
-// This function can be marked `async` if using `await` inside
-export function middleware(request: NextRequest) {
-  // Simple placeholder for authentication check.
-  // In a real app, you'd verify a token from cookies or headers.
+const locales = ['en', 'fa'];
+const publicPages = ['/login']; // Pages accessible without authentication
+
+const intlMiddleware = createMiddleware({
+  // A list of all locales that are supported
+  locales: locales,
+
+  // Used when no locale matches
+  defaultLocale: 'en'
+});
+
+export default function middleware(request: NextRequest) {
+  const publicPathnameRegex = RegExp(
+    `^(/(${locales.join('|')}))?(${publicPages.flatMap((p) => (p === '/' ? ['', '/'] : p)).join('|')})/?$`,
+    'i'
+  );
+  const isPublicPage = publicPathnameRegex.test(request.nextUrl.pathname);
+
+  // Apply next-intl middleware first
+  const intlResponse = intlMiddleware(request);
+
+  // Check authentication status
   const isAuthenticated = request.cookies.get('auth_token')?.value === 'mock-token'; // Replace with real check
-
   const { pathname } = request.nextUrl;
 
-  // If trying to access app routes (and not already on login) and not authenticated, redirect to login
-  if (!isAuthenticated && pathname !== '/login') {
-    const loginUrl = new URL('/login', request.url);
-    // Optional: Add a 'redirectedFrom' query parameter
-    // loginUrl.searchParams.set('redirectedFrom', pathname);
+  // Redirect to login if not authenticated and accessing a protected page
+  if (!isAuthenticated && !isPublicPage) {
+    // Construct login URL with locale prefix if it exists
+    const localePrefix = locales.find(loc => pathname.startsWith(`/${loc}/`)) || '';
+    const loginUrl = new URL(`${localePrefix}/login`, request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  // If authenticated and trying to access login page, redirect to home
-  if (isAuthenticated && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
+  // Redirect to home if authenticated and trying to access login page
+  if (isAuthenticated && isPublicPage && pathname.includes('/login')) {
+     // Construct home URL with locale prefix if it exists
+     const localePrefix = locales.find(loc => pathname.startsWith(`/${loc}/`)) || '';
+     return NextResponse.redirect(new URL(`${localePrefix}/`, request.url));
   }
 
-  // Allow the request to proceed
-  return NextResponse.next();
+  // Return the response from next-intl middleware (handles locale redirection etc.)
+  return intlResponse;
 }
 
-// See "Matching Paths" below to learn more
+
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  // Match only internationalized pathnames
+   matcher: [
+    // Enable a redirect to `/` when a locale is matched
+    '/',
+
+    // Set a cookie to remember the previous locale for
+    // all requests that have a locale prefix
+    '/(en|fa)/:path*',
+
+     // Match all request paths except for the ones starting with:
+     // - api (API routes)
+     // - _next/static (static files)
+     // - _next/image (image optimization files)
+     // - favicon.ico (favicon file)
+     '/((?!api|_next/static|_next/image|favicon.ico).*)'
+   ],
 };

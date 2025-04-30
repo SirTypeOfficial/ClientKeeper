@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import type { Customer } from '@/lib/types';
+import { useLocale, useTranslations } from 'next-intl'; // Import localization hooks
 import {
   Table,
   TableBody,
@@ -11,16 +12,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format as formatGregorian } from 'date-fns';
+import { format as formatJalali } from 'date-fns-jalali'; // Import Jalali format
 import { ArrowUpDown } from 'lucide-react';
 
 type SortKey = 'fullName' | 'phoneNumber' | 'birthday' | 'dateAdded';
@@ -31,6 +26,8 @@ interface CustomerTableProps {
 }
 
 export function CustomerTable({ initialCustomers }: CustomerTableProps) {
+  const t = useTranslations('CustomersPage'); // Initialize translations
+  const locale = useLocale(); // Get current locale
   const [customers, setCustomers] = React.useState<Customer[]>(initialCustomers);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortKey, setSortKey] = React.useState<SortKey>('dateAdded');
@@ -73,7 +70,6 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
           valB = b.phoneNumber || '';
           break;
         case 'birthday':
-          // Sort null/undefined birthdays to the end
           if (!a.birthday) return 1;
           if (!b.birthday) return -1;
           valA = a.birthday;
@@ -87,54 +83,72 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
           return 0;
       }
 
-      if (valA < valB) {
-        return sortDirection === 'asc' ? -1 : 1;
+      // Handle potential type mismatches (though less likely with defined SortKey)
+      if (typeof valA === 'string' && typeof valB === 'string') {
+         const compare = valA.localeCompare(valB, locale); // Use localeCompare for strings
+         return sortDirection === 'asc' ? compare : -compare;
+      } else if (valA instanceof Date && valB instanceof Date) {
+         const compare = valA.getTime() - valB.getTime();
+         return sortDirection === 'asc' ? compare : -compare;
+      } else if (typeof valA === 'number' && typeof valB === 'number') {
+          const compare = valA - valB;
+          return sortDirection === 'asc' ? compare : -compare;
       }
-      if (valA > valB) {
-        return sortDirection === 'asc' ? 1 : -1;
-      }
+      // Basic comparison for other types or mixed types (less ideal)
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+
       return 0;
     });
 
     return sorted;
-  }, [customers, searchTerm, sortKey, sortDirection]);
+  }, [customers, searchTerm, sortKey, sortDirection, locale]); // Add locale dependency
 
   const renderSortIcon = (key: SortKey) => {
-     if (sortKey !== key) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-30" />;
+     if (sortKey !== key) return <ArrowUpDown className="ltr:ml-2 rtl:mr-2 h-4 w-4 opacity-30" />;
      return sortDirection === 'asc' ? (
-        <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" className="ltr:ml-2 rtl:mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
      ) : (
-       <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+       <svg xmlns="http://www.w3.org/2000/svg" className="ltr:ml-2 rtl:mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
      );
+   };
+
+   // Function to format date based on locale
+   const formatDate = (date: Date) => {
+       try {
+           return locale === 'fa' ? formatJalali(date, 'yyyy/MM/dd') : formatGregorian(date, 'PP');
+       } catch (e) {
+           console.error("Error formatting date:", e);
+           return date.toLocaleDateString(locale); // Fallback to browser locale formatting
+       }
    };
 
   return (
     <div className="w-full space-y-4">
       <div className="flex flex-col sm:flex-row gap-2">
         <Input
-          placeholder="Search by name, phone, or tag..."
+          placeholder={t('tableSearchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-grow"
         />
-        {/* Removed Select for sorting, using clickable headers instead */}
       </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
                <TableHead onClick={() => handleSort('fullName')} className="cursor-pointer">
-                 <div className="flex items-center">Name {renderSortIcon('fullName')}</div>
+                 <div className="flex items-center">{t('tableHeaderName')} {renderSortIcon('fullName')}</div>
                </TableHead>
                <TableHead onClick={() => handleSort('phoneNumber')} className="cursor-pointer hidden md:table-cell">
-                 <div className="flex items-center">Phone {renderSortIcon('phoneNumber')}</div>
+                 <div className="flex items-center">{t('tableHeaderPhone')} {renderSortIcon('phoneNumber')}</div>
                </TableHead>
                <TableHead onClick={() => handleSort('birthday')} className="cursor-pointer hidden lg:table-cell">
-                 <div className="flex items-center">Birthday {renderSortIcon('birthday')}</div>
+                 <div className="flex items-center">{t('tableHeaderBirthday')} {renderSortIcon('birthday')}</div>
                </TableHead>
-              <TableHead className="hidden md:table-cell">Tags</TableHead>
+              <TableHead className="hidden md:table-cell">{t('tableHeaderTags')}</TableHead>
               <TableHead onClick={() => handleSort('dateAdded')} className="cursor-pointer hidden lg:table-cell">
-                <div className="flex items-center">Date Added {renderSortIcon('dateAdded')}</div>
+                <div className="flex items-center">{t('tableHeaderDateAdded')} {renderSortIcon('dateAdded')}</div>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -158,7 +172,7 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{customer.phoneNumber || '-'}</TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {customer.birthday ? format(customer.birthday, 'PP') : '-'}
+                    {customer.birthday ? formatDate(customer.birthday) : '-'}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {customer.tags && customer.tags.length > 0 ? (
@@ -172,14 +186,14 @@ export function CustomerTable({ initialCustomers }: CustomerTableProps) {
                     )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {format(customer.dateAdded, 'PP')}
+                    {formatDate(customer.dateAdded)}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center">
-                  No customers found.
+                  {t('tableNoCustomers')}
                 </TableCell>
               </TableRow>
             )}
