@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, UserPlus, Phone, CalendarDays, Tags, Contact } from 'lucide-react';
+import { Calendar as CalendarIcon, UserPlus, Phone, CalendarDays, Tags, Contact, X as XIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -131,7 +131,7 @@ export default function AddCustomerPage() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Select Contact</h2>
               <Button variant="ghost" size="icon" onClick={() => setShowContactPicker(false)}>
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                 <XIcon className="h-5 w-5" />
               </Button>
             </div>
             {phoneContacts.length > 0 ? (
@@ -296,8 +296,9 @@ export default function AddCustomerPage() {
   );
 }
 
-// Add metadata for the page
-export const metadata = {
-  title: 'Add Customer - Client Keeper',
-  description: 'Add a new customer to your list.',
-};
+// Metadata cannot be exported from a Client Component.
+// Remove the export below or move it to a Server Component/Layout.
+// export const metadata = {
+//   title: 'Add Customer - Client Keeper',
+//   description: 'Add a new customer to your list.',
+// };
