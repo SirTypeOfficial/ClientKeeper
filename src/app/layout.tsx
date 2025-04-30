@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning> {/* Add suppressHydrationWarning for theme switching */}
+    <html lang="en" suppressHydrationWarning>{/* Add suppressHydrationWarning for theme switching */}
       <body className={`${inter.variable} font-sans antialiased`}>{/* Use Inter font */}
         {children}
         <Toaster /> {/* Add Toaster component here */}
