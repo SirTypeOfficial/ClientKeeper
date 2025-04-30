@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning> {/* Add suppressHydrationWarning for theme switching */}
-      <body className={`${inter.variable} font-sans antialiased`}> {/* Use Inter font */}
+      <body className={`${inter.variable} font-sans antialiased`}>{/* Use Inter font */}
         {children}
         <Toaster /> {/* Add Toaster component here */}
       </body>
