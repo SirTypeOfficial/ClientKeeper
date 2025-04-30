@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
+import type { Metadata } from 'next'; // Import Metadata type
 
 import { CustomerTable } from '@/components/customer-table';
 import { MOCK_CUSTOMERS } from '@/lib/mock-data'; // Using mock data for now
@@ -33,7 +34,7 @@ export default async function CustomersPage() {
 }
 
 // Add metadata for the page
-export const metadata = {
+export const metadata: Metadata = { // Add Metadata type
   title: 'Customers - Client Keeper',
   description: 'View and manage your customer list.',
 };

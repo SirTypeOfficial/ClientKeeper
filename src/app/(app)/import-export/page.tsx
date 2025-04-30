@@ -1,3 +1,6 @@
+'use client'; // Add 'use client' directive
+
+import * as React from "react"; // Import React for ChangeEvent type if not already
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Upload } from "lucide-react";
@@ -90,8 +93,9 @@ export default function ImportExportPage() {
   );
 }
 
-// Add metadata for the page
-export const metadata = {
-  title: 'Import/Export - Client Keeper',
-  description: 'Import or export your customer data.',
-};
+// Metadata cannot be exported from a Client Component.
+// It should be defined in a parent Server Component or Layout, or removed if not needed at this level.
+// export const metadata = {
+//   title: 'Import/Export - Client Keeper',
+//   description: 'Import or export your customer data.',
+// };
